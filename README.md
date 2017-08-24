@@ -1,21 +1,12 @@
 Code provided to reproduce the results from the article "Learning Functional Causal Models with Generative Neural Networks"
 
-
-
-
 Requirements:
 numpy
-
 scipy
-
 scikit-learn
-
 tensorflow
-
 joblib
-
 pandas
-
 
 In order to run the CGNN and launch the experiments
 1) First intall the CGNN package 
@@ -32,4 +23,4 @@ b) run the command line "python setup.py install develop --user"
 "python run_CGNN_graph_hidden_variables.py"
 
 5) The dataset used in the article may be found at the following url :
-# CGNN-Learning-functional-causal-model-with-generative-neural-network
+- TO COMPLETE
