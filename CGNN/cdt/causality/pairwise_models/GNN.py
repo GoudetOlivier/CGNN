@@ -52,29 +52,14 @@ class GNN_tf(object):
         self.X = tf.placeholder(tf.float32, shape=[None, 1])
         self.Y = tf.placeholder(tf.float32, shape=[None, 1])
 
-        #Ws_in = tf.Variable(init([1, h_layer_dim], **kwargs))
-        #bs_in = tf.Variable(init([h_layer_dim], **kwargs))
-        #Ws_out = tf.Variable(init([h_layer_dim, 1], **kwargs))
-        #bs_out = tf.Variable(init([1], **kwargs))
-
         W_in = tf.Variable(init([2, h_layer_dim], **kwargs))
         b_in = tf.Variable(init([h_layer_dim], **kwargs))
         W_out = tf.Variable(init([h_layer_dim, 1], **kwargs))
         b_out = tf.Variable(init([1], **kwargs))
 
-        #theta_G = [W_in, b_in,
-        #           W_out, b_out,
-        #           Ws_in, bs_in,
-        #           Ws_out, bs_out]
-
         theta_G = [W_in, b_in,
                    W_out, b_out]
 
-
-        #es = tf.random_normal([N, 1], mean=0, stddev=1)
-        #
-        #out_x = tf.nn.relu(tf.matmul(es, Ws_in) + bs_in)
-        #out_x = tf.matmul(out_x, Ws_out) + bs_out
 
         e = tf.random_normal([N, 1], mean=0, stddev=1)
 
