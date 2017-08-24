@@ -9,19 +9,13 @@ joblib
 pandas
 
 In order to run the CGNN and launch the experiments
-1) First install the CGNN package
+1) First install the CGNN package. Enter in the CGNN repertory. Run the command line "python setup.py install develop --user"
 
-a) Enter in the CGNN repertory
-b) run the command line "python setup.py install develop --user"
+2) launch the example python script for pairwise inference: "python run_GNN_pairwise_inference.py"
 
-2) launch the example python script for pairwise inference
-"python run_GNN_pairwise_inference.py"
+3) launch the example python script for graph reconstruction from a skeleton: "python run_CGNN_graph.py"
 
-3) launch the example python script for graph reconstruction from a skeleton:
-"python run_CGNN_graph.py"
-
-4) launch the example python script for graph reconstruction in presence if hidden variables:
-"python run_CGNN_graph_hidden_variables.py"
+4) launch the example python script for graph reconstruction in presence if hidden variables: "python run_CGNN_graph_hidden_variables.py"
 
 5) The dataset used in the article may be found at the following url:
 - TO COMPLETE
