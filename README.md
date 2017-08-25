@@ -18,4 +18,5 @@ In order to run the CGNN and launch the experiments
 4) launch the example python script for graph reconstruction in presence if hidden variables: "python run_CGNN_graph_hidden_variables.py"
 
 5) The dataset used in the article may be found at the following url:
-- TO COMPLETE
+- pairwise datasets : http://dx.doi.org/10.7910/DVN/3757KX
+- graph datasets : http://dx.doi.org/10.7910/DVN/UZMB69
