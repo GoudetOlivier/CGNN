@@ -5,19 +5,22 @@ Ref :
 Date : 09/5/17
 """
 
+import warnings
+from copy import deepcopy
+
+import numpy as np
 import tensorflow as tf
+from joblib import Parallel, delayed
+# import torch as th
+# from torch.autograd import Variable
 from pandas import DataFrame
 from sklearn.preprocessing import scale
-import warnings
-from joblib import Parallel, delayed
-import sys
-import numpy as np
-from copy import deepcopy
-from .model import GraphModel
-from ..pairwise_models.GNN import GNN
-from ...utils.Loss import MMD_loss_tf,Fourier_MMD_Loss_tf
-from ...utils.Settings import SETTINGS
-import pandas as pd
+
+from Code.cgnn.GNN import GNN
+from Code.cgnn.utils.Loss import MMD_loss_tf, Fourier_MMD_Loss_tf
+# from ...utils.Loss import  MMD_loss_th
+from Code.cgnn.utils.Settings import SETTINGS
+from .GraphModel import GraphModel
 
 
 def init(size, **kwargs):
@@ -31,7 +34,7 @@ def init(size, **kwargs):
     return tf.random_normal(shape=size, stddev=init_std)
 
 
-class CGNN_tf(object):
+class CGNN_confounders_tf(object):
     def __init__(self, N, graph, run, idx, **kwargs):
         """ Build the tensorflow graph of the CGNN structure
 
@@ -51,7 +54,8 @@ class CGNN_tf(object):
 
         self.run = run
         self.idx = idx
-        list_nodes = graph.get_list_nodes()
+        list_nodes = graph.skeleton.get_list_nodes()
+
         n_var = len(list_nodes)
 
         self.all_real_variables = tf.placeholder(tf.float32, shape=[None, n_var])
@@ -59,21 +63,36 @@ class CGNN_tf(object):
         generated_variables = {}
         theta_G = []
 
+        list_edges = graph.skeleton.get_list_edges_without_duplicate()
+
+        confounder_variables = {}
+        for edge in list_edges:
+            noise_variable = tf.random_normal([N, 1], mean=0, stddev=1)
+            confounder_variables[edge[0],edge[1]] = noise_variable
+            confounder_variables[edge[1],edge[0]] = noise_variable
+
         while len(generated_variables) < n_var:
             # Need to generate all variables in the graph using its parents : possible because of the DAG structure
             for var in list_nodes:
                 # Check if all parents are generated
                 par = graph.get_parents(var)
-                if (var not in generated_variables and
-                        set(par).issubset(generated_variables)):
+                if (var not in generated_variables and set(par).issubset(generated_variables)):
+
+                    neighboorhood = graph.skeleton.get_neighbors(var)
+
                     # Generate the variable
-                    W_in = tf.Variable(init([len(par) + 1, h_layer_dim], **kwargs))
+                    W_in = tf.Variable(init([len(par) + len(neighboorhood) + 1, h_layer_dim], **kwargs))
                     b_in = tf.Variable(init([h_layer_dim], **kwargs))
                     W_out = tf.Variable(init([h_layer_dim, 1], **kwargs))
                     b_out = tf.Variable(init([1], **kwargs))
 
                     input_v = [generated_variables[i] for i in par]
                     input_v.append(tf.random_normal([N, 1], mean=0, stddev=1))
+
+
+                    for i in neighboorhood:
+                        input_v.append(confounder_variables[i,var])
+
                     input_v = tf.concat(input_v, 1)
 
                     out_v = tf.nn.relu(tf.matmul(input_v, W_in) + b_in)
@@ -81,6 +100,7 @@ class CGNN_tf(object):
 
                     generated_variables[var] = out_v
                     theta_G.extend([W_in, b_in, W_out, b_out])
+
 
         listvariablegraph = []
         for var in list_nodes:
@@ -120,7 +140,7 @@ class CGNN_tf(object):
             )
 
             if verbose:
-                if it % 100 == 0:
+                if it % 500 == 0:
                     print('Pair:{}, Run:{}, Iter:{}, score:{}'.
                           format(self.idx, self.run,
                                  it, G_dist_loss_xcausesy_curr))
@@ -143,7 +163,7 @@ class CGNN_tf(object):
 
             sumMMD_tr += MMD_tr[0]
 
-            if verbose and it % 100 == 0:
+            if verbose and it % 500 == 0:
                 print('Pair:{}, Run:{}, Iter:{}, score:{}'
                           .format(self.idx, self.run, it, MMD_tr[0]))
 
@@ -159,7 +179,7 @@ class CGNN_tf(object):
         return np.array(generated_variables)[0, :, :]
 
 
-def run_CGNN_tf(df_data, graph, idx=0, run=0, **kwargs):
+def run_CGNN_confounders_tf(df_data, graph, idx=0, run=0, **kwargs):
     """ Execute the CGNN, by init, train and eval either on CPU or GPU
 
     :param df_data: data corresponding to the graph
@@ -175,26 +195,28 @@ def run_CGNN_tf(df_data, graph, idx=0, run=0, **kwargs):
     nb_gpu = kwargs.get('nb_gpu', SETTINGS.NB_GPU)
     gpu_offset = kwargs.get('gpu_offset', SETTINGS.GPU_OFFSET)
 
-    list_nodes = graph.get_list_nodes()
+    list_nodes = graph.skeleton.get_list_nodes()
+
     df_data = df_data[list_nodes].as_matrix()
+
     data = df_data.astype('float32')
 
     if (data.shape[0] > SETTINGS.max_nb_points):
-        p = np.random.permutation(data.shape[0])
+        p = np.random.permutation(data .shape[0])
         data  = data[p[:int(SETTINGS.max_nb_points)],:]
 
     if gpu:
         with tf.device('/gpu:' + str(gpu_offset + run % nb_gpu)):
-            model = CGNN_tf(data.shape[0], graph, run, idx, **kwargs)
+            model = CGNN_confounders_tf(data.shape[0], graph, run, idx, **kwargs)
             model.train(data, **kwargs)
             return model.evaluate(data, **kwargs)
     else:
-        model = CGNN_tf(data.shape[0], graph, run, idx, **kwargs)
+        model = CGNN_confounders_tf(data, graph, run, idx, **kwargs)
         model.train(data, **kwargs)
         return model.evaluate(data, **kwargs)
 
 
-def hill_climbing(graph, data, run_cgnn_function, **kwargs):
+def hill_climbing_confounders(graph, data, run_cgnn_function, **kwargs):
     """ Optimize graph using CGNN with a hill-climbing algorithm
 
     :param graph: graph to optimize
@@ -209,49 +231,154 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
     loop = 0
     tested_configurations = [graph.get_dict_nw()]
     improvement = True
-    result = []
-    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-        data, graph, 0, run, **kwargs) for run in range(nb_runs))
+    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(data, graph, 0, run, **kwargs) for run in range(nb_runs))
 
     score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
+    score_network += SETTINGS.complexity_graph_param*len(graph.get_list_edges())
     globalscore = score_network
 
-    print("Graph score : " + str(globalscore))
-
     while improvement:
+
         loop += 1
         improvement = False
-        list_edges = graph.get_list_edges()
-        for idx_pair in range(len(list_edges)):
-            edge = list_edges[idx_pair]
-            test_graph = deepcopy(graph)
-            test_graph.reverse_edge(edge[0], edge[1])
+        list_edges_to_evaluate = graph.skeleton.get_list_edges_without_duplicate()
 
-            if (test_graph.is_cyclic()
-                or test_graph.get_dict_nw() in tested_configurations):
-                print('No Evaluation for {}'.format([edge]))
+        for idx_pair in range(0,len(list_edges_to_evaluate)):
+
+            edge = list_edges_to_evaluate[idx_pair]
+
+            print(edge)
+            print(graph.get_list_edges(return_weights=False))
+            ### If edge already oriented in the graph
+            if([edge[0], edge[1]] in graph.get_list_edges(return_weights=False) or [edge[1], edge[0]] in graph.get_list_edges(return_weights=False)):
+
+                if([edge[0], edge[1]] in graph.get_list_edges(return_weights=False)):
+                    node1 = edge[0]
+                    node2 = edge[1]
+                else:
+                    node2 = edge[0]
+                    node1 = edge[1]
+
+                #### Test reverse edge
+                test_graph = deepcopy(graph)
+                test_graph.reverse_edge(node1, node2)
+
+                if (test_graph.is_cyclic()
+                    or test_graph.get_dict_nw() in tested_configurations):
+                    print("No evaluation for edge " + str(node1) + " -> " + str(node2))
+                else:
+                    print("Reverse Edge " + str(node1) + " -> " + str(node2) + " in evaluation")
+                    tested_configurations.append(test_graph.get_dict_nw())
+                    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
+
+                    score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
+                    score_network += SETTINGS.complexity_graph_param * len(test_graph.get_list_edges())
+
+                    print("Current score : " + str(score_network))
+                    print("Best score : " + str(globalscore))
+
+                    if score_network < globalscore:
+                        graph.reverse_edge(node1, node2)
+                        improvement = True
+                        print("Edge " + str(node1) + "->" + str(node2) + " got reversed !")
+                        globalscore = score_network
+                        node = node1
+                        node1 = node2
+                        node2 = node
+
+                #### Test suppression
+                test_graph = deepcopy(graph)
+                test_graph.remove_edge(node1, node2)
+
+                if (test_graph.get_dict_nw() in tested_configurations):
+                    print("Removing already evaluated for edge " + str(node1) + " -> " + str(node2))
+                else:
+                    print("Removing edge " + str(node1) + " -> " + str(node2) + " in evaluation")
+
+                    tested_configurations.append(test_graph.get_dict_nw())
+                    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
+                        data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
+
+                    score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
+                    score_network += SETTINGS.complexity_graph_param * len(test_graph.get_list_edges())
+
+                    print("Current score : " + str(score_network))
+                    print("Best score : " + str(globalscore))
+
+                    if score_network < globalscore:
+                        graph.remove_edge(node1, node2)
+                        improvement = True
+                        print("Edge " + str(node1) + " -> " + str(node2) + " got removed, possible confounder !")
+                        globalscore = score_network
+
+                    else:
+                        #We keep the edge and its score is set to (score_network - globalscore)
+                        print("Edge " + str(node1) + " -> " + str(node2) + " not removed. Score edge : " + str(score_network - globalscore))
+                        graph.set_weight(node1, node2, score_network - globalscore)
+
+
+            ### Eval if a suppressed edge need to be restored
             else:
-                print('Edge {} in evaluation :'.format(edge))
-                tested_configurations.append(test_graph.get_dict_nw())
-                result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-                    data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
 
-                score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
+                node1 = edge[0]
+                node2 = edge[1]
 
-                print("Current score : " + str(score_network))
+                #### Test add edge sens node1 -> node2
+                test_graph = deepcopy(graph)
+                test_graph.add(node1, node2)
+
+                score_network_add_edge_node1_node2 = 9999
+
+                if (test_graph.is_cyclic()
+                    or test_graph.get_dict_nw() in tested_configurations):
+                    print("No addition possible for " + str(node1) + " -> " + str(node2))
+                else:
+                    print("Addition of edge " + str(node1) + " -> " + str(node2) + " in evaluation :")
+                    tested_configurations.append(test_graph.get_dict_nw())
+                    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
+                        data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
+
+                    score_network_add_edge_node1_node2 = np.mean([i for i in result_pairs if np.isfinite(i)])
+                    score_network_add_edge_node1_node2 += SETTINGS.complexity_graph_param * len(test_graph.get_list_edges())
+
+                    print("score network add edge " + str(node1) + " -> " + str(node2) + " : " + str(score_network_add_edge_node1_node2))
+
+                #### Test add edge sens node2 -> node1
+                test_graph = deepcopy(graph)
+                test_graph.add(node2, node1)
+
+                score_network_add_edge_node2_node1 = 9999
+
+                if (test_graph.is_cyclic()
+                    or test_graph.get_dict_nw() in tested_configurations):
+                    print("No addition possible for edge " + str(node2) + " -> " + str(node1))
+                else:
+                    print("Addition of edge " + str(node2) + " -> " + str(node1) + " in evaluation :")
+                    tested_configurations.append(test_graph.get_dict_nw())
+                    result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
+                        data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
+
+                    score_network_add_edge_node2_node1 = np.mean([i for i in result_pairs if np.isfinite(i)])
+                    score_network_add_edge_node2_node1 += SETTINGS.complexity_graph_param * len(test_graph.get_list_edges())
+
+                    print("score network add edge " + str(node2) + " -> " + str(node1) + " : " + str(score_network_add_edge_node2_node1))
+
                 print("Best score : " + str(globalscore))
 
-                if score_network < globalscore:
-                    graph.reverse_edge(edge[0], edge[1])
+                if score_network_add_edge_node1_node2 < globalscore and score_network_add_edge_node1_node2 < score_network_add_edge_node2_node1:
+                    score_edge = globalscore - score_network_add_edge_node1_node2
+                    graph.add(node1, node2, score_edge)
                     improvement = True
-                    print('Edge {} got reversed !'.format(edge))
+                    print("Edge " + str(node1) + " -> " + str(node2) + " is added with score : " + str(score_edge) + " !")
                     globalscore = score_network
-
-                df_edge_result = pd.DataFrame(graph.get_list_edges(),
-                                              columns=['Cause', 'Effect',
-                                                       'Weight'])
-                df_edge_result.to_csv('results/' + name_algo + dataset_name +
-                                      '-loop{}.csv'.format(loop), index=False)
+                elif score_network_add_edge_node2_node1 < globalscore and score_network_add_edge_node2_node1 < score_network_add_edge_node1_node2:
+                    score_edge = globalscore - score_network_add_edge_node2_node1
+                    graph.add(node2, node1, score_edge)
+                    improvement = True
+                    print("Edge " + str(node2) + " -> " + str(node1) + " is added with score : " + str(score_edge) + " !")
+                    globalscore = score_network
+                else :
+                    print("Edge not added, possible confounder " + str(node1) + " <-> " + str(node2))
 
     return graph
 
@@ -331,7 +458,7 @@ def tabu_search(graph, data, run_cgnn_function, **kwargs):
     raise ValueError('Not Yet Implemented')
 
 
-class CGNN(GraphModel):
+class CGNN_confounders(GraphModel):
     """
     CGNN Model ; Using generative models, generate the whole causal graph and improve causal
     direction predictions in the graph.
@@ -342,11 +469,11 @@ class CGNN(GraphModel):
 
         :param backend: Choose the backend to use, either 'PyTorch' or 'TensorFlow'
         """
-        super(CGNN, self).__init__()
+        super(CGNN_confounders, self).__init__()
         self.backend = backend
 
         if self.backend == 'TensorFlow':
-            self.infer_graph = run_CGNN_tf
+            self.infer_graph = run_CGNN_confounders_tf
         elif self.backend == 'PyTorch':
             self.infer_graph = run_CGNN_th
         else:
@@ -367,7 +494,7 @@ class CGNN(GraphModel):
         :return: improved directed acyclic graph
         """
         data = DataFrame(scale(data.as_matrix()), columns=data.columns)
-        alg_dic = {'HC': hill_climbing, 'tabu': tabu_search, 'EHC': exploratory_hill_climbing}
+        alg_dic = {'HC': hill_climbing_confounders, 'tabu': tabu_search, 'EHC': exploratory_hill_climbing}
         return alg_dic[alg](dag, data, self.infer_graph, **kwargs)
 
     def orient_undirected_graph(self, data, umg, **kwargs):

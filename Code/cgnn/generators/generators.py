@@ -4,11 +4,12 @@ Date : 30/06/17
 """
 import numpy as np
 import tensorflow as tf
-from ..utils.Loss import MMD_loss_tf as MMD
-from ..utils.Settings import SETTINGS
 from sklearn.linear_model import LassoLars
 from sklearn.svm import SVR
-from ..causality.graphical_models.CGNN import CGNN_tf as CGNN
+
+from Code.cgnn.CGNN import CGNN_tf as CGNN
+from ..utils.Loss import MMD_loss_tf as MMD
+from ..utils.Settings import SETTINGS
 
 
 def init(size):

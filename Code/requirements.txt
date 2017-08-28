@@ -2,6 +2,5 @@ numpy
 scipy
 scikit-learn
 tensorflow
-pytorch
 joblib
 pandas

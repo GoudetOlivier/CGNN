@@ -12,8 +12,8 @@ cdt.SETTINGS.use_Fast_MMD = True
 cdt.SETTINGS.NB_RUNS = 64 
 
 #Setting for CGNN-MMD
-# cdt.SETTINGS.use_Fast_MMD = False
-#cdt.SETTINGS.NB_RUNS = 32 
+# cgnn.SETTINGS.use_Fast_MMD = False
+#cgnn.SETTINGS.NB_RUNS = 32
 
 
 datafile = "Example_graph_numdata.csv"

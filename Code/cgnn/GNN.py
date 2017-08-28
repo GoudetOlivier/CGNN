@@ -10,12 +10,12 @@ import tensorflow as tf
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
-from ...utils.Loss import MMD_loss_tf as MMD_tf
-from ...utils.Loss import Fourier_MMD_Loss_tf as Fourier_MMD_tf
-from ...utils.Settings import SETTINGS
+from Code.cgnn.utils.Loss import MMD_loss_tf as MMD_tf
+from Code.cgnn.utils.Loss import Fourier_MMD_Loss_tf as Fourier_MMD_tf
+from Code.cgnn.utils.Settings import SETTINGS
 from joblib import Parallel, delayed
 from sklearn.preprocessing import scale
-from .model import Pairwise_Model
+from .PairwiseModel import Pairwise_Model
 import pandas as pd
 
 def init(size, **kwargs):
