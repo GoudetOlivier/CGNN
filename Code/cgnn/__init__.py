@@ -3,7 +3,7 @@ from .utils.Graph import DirectedGraph, UndirectedGraph
 from .CGNN import CGNN
 from .CGNN_confounders import CGNN_confounders
 from .GNN import GNN
-import cdt.generators
+from .generators import __init__
 from .utils import Loss
 from .utils.Settings import SETTINGS
 
