@@ -11,7 +11,7 @@ joblib
 pandas
 
 ### In order to run the CGNN and launch the experiments:
-1) First install the CGNN package. Enter in the CGNN repertory. Run the command line "python setup.py install develop --user"
+1) First install the CGNN package. Enter in the code directory. Run the command line "python setup.py install develop --user"
 
 2) Launch the example python script for pairwise inference: "python run_GNN_pairwise_inference.py"
 

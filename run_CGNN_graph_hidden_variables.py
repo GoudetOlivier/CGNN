@@ -1,15 +1,15 @@
-import cdt
+import cgnn
 import pandas as pd
 from sklearn.preprocessing import scale
 
 # Params
-cdt.SETTINGS.GPU = True
-cdt.SETTINGS.NB_GPU = 1
-cdt.SETTINGS.NB_JOBS = 1
+cgnn.SETTINGS.GPU = True
+cgnn.SETTINGS.NB_GPU = 1
+cgnn.SETTINGS.NB_JOBS = 1
 
 #Setting for CGNN-Fourier
-cdt.SETTINGS.use_Fast_MMD = True
-cdt.SETTINGS.NB_RUNS = 64 
+cgnn.SETTINGS.use_Fast_MMD = True
+cgnn.SETTINGS.NB_RUNS = 64 
 
 #Setting for CGNN-MMD
 # cgnn.SETTINGS.use_Fast_MMD = False
@@ -22,16 +22,16 @@ skeletonfile = "Example_graph_confounders_skeleton.csv"
 data = pd.read_csv(datafile)
 skeleton_links = pd.read_csv(skeletonfile)
 
-skeleton = cdt.UndirectedGraph(skeleton_links)
+skeleton = cgnn.UndirectedGraph(skeleton_links)
 
 data = pd.DataFrame(scale(data),columns=data.columns)
 
-GNN = cdt.causality.pairwise_models.GNN(backend="TensorFlow")
+GNN = cgnn.GNN(backend="TensorFlow")
 p_directed_graph = GNN.orient_graph_confounders(data, skeleton, printout= datafile +  '_printout.csv')
 
 gnn_res = pd.DataFrame(p_directed_graph.get_list_edges(descending=True), columns=['Cause', 'Effect', 'Score'])
 gnn_res.to_csv(datafile + "_pairwise_predictions.csv")
-CGNN_confounders = cdt.causality.graphical_models.CGNN_confounders(backend="TensorFlow")
+CGNN_confounders = cgnn.CGNN_confounders(backend="TensorFlow")
 directed_graph = CGNN_confounders.orient_directed_graph(data, p_directed_graph)
 cgnn_res = pd.DataFrame(directed_graph.get_list_edges(descending=True), columns=['Cause', 'Effect', 'Score'])
 

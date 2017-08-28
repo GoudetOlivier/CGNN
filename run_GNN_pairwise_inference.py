@@ -1,15 +1,15 @@
-import cdt
-from cdt.utils import CCEPC_PairsFileReader as CC
+import cgnn
+from cgnn.utils import CCEPC_PairsFileReader as CC
 import pandas as pd
 
 # Params
-cdt.SETTINGS.GPU = True
-cdt.SETTINGS.NB_GPU = 1
-cdt.SETTINGS.NB_JOBS = 1
+cgnn.SETTINGS.GPU = True
+cgnn.SETTINGS.NB_GPU = 1
+cgnn.SETTINGS.NB_JOBS = 1
 
 #Setting for CGNN-Fourier
-cdt.SETTINGS.use_Fast_MMD = True
-cdt.SETTINGS.NB_RUNS = 64 
+cgnn.SETTINGS.use_Fast_MMD = True
+cgnn.SETTINGS.NB_RUNS = 64 
 
 #Setting for CGNN-MMD
 # cgnn.SETTINGS.use_Fast_MMD = False
@@ -19,7 +19,7 @@ datafile = "Example_pairwise_pairs.csv"
 
 print("Processing " + datafile + "...")
 data = CC(datafile, scale=True)
-model = cdt.causality.pairwise_models.GNN(backend="TensorFlow")
+model = cgnn.GNN(backend="TensorFlow")
 predictions = model.predict_dataset(data, printout=datafile + '_printout.csv')
 predictions = pd.DataFrame(predictions, columns=["Predictions"])
 
