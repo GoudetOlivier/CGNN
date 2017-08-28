@@ -3,7 +3,7 @@ Pairwise causal models base class
 Author: Diviyan Kalainathan
 Date : 7/06/2017
 """
-from Code.cgnn.utils.Graph import DirectedGraph
+from .utils.Graph import DirectedGraph
 from sklearn.preprocessing import scale
 from pandas import DataFrame
 

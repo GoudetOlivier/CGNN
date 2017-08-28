@@ -15,9 +15,9 @@ from joblib import Parallel, delayed
 from pandas import DataFrame
 from sklearn.preprocessing import scale
 
-from Code.cgnn.GNN import GNN
-from Code.cgnn.utils.Loss import MMD_loss_tf, Fourier_MMD_Loss_tf
-from Code.cgnn.utils.Settings import SETTINGS
+from .GNN import GNN
+from .utils.Loss import MMD_loss_tf, Fourier_MMD_Loss_tf
+from .utils.Settings import SETTINGS
 from .GraphModel import GraphModel
 
 
