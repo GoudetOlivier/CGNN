@@ -248,11 +248,6 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
                     print('Edge {} got reversed !'.format(edge))
                     globalscore = score_network
 
-                df_edge_result = pd.DataFrame(graph.get_list_edges(),
-                                              columns=['Cause', 'Effect',
-                                                       'Weight'])
-                df_edge_result.to_csv('results/' + name_algo + dataset_name +
-                                      '-loop{}.csv'.format(loop), index=False)
 
     return graph
 
