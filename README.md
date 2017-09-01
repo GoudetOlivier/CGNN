@@ -17,7 +17,7 @@ pandas
 
 3) Launch the example python script for graph reconstruction from a skeleton: "python run_CGNN_graph.py"
 
-4) Launch the example python script for graph reconstruction in presence if hidden variables: "python run_CGNN_graph_hidden_variables.py"
+4) Launch the example python script for graph reconstruction in presence of hidden variables: "python run_CGNN_graph_hidden_variables.py"
 
 5) The complete datasets used in the article may be found at the following url:
 - pairwise datasets : http://dx.doi.org/10.7910/DVN/3757KX
