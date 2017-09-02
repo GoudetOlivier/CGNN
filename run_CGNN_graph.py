@@ -8,12 +8,12 @@ cgnn.SETTINGS.NB_GPU = 2
 cgnn.SETTINGS.NB_JOBS = 8
 
 #Setting for CGNN-Fourier
-cgnn.SETTINGS.use_Fast_MMD = True
-cgnn.SETTINGS.NB_RUNS = 64 
+#cgnn.SETTINGS.use_Fast_MMD = True
+#cgnn.SETTINGS.NB_RUNS = 64 
 
 #Setting for CGNN-MMD
-# cgnn.SETTINGS.use_Fast_MMD = False
-#cgnn.SETTINGS.NB_RUNS = 32
+cgnn.SETTINGS.use_Fast_MMD = False
+cgnn.SETTINGS.NB_RUNS = 32
 
 
 datafile = "Example_graph_numdata.csv"
