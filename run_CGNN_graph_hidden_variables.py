@@ -4,8 +4,8 @@ from sklearn.preprocessing import scale
 
 # Params
 cgnn.SETTINGS.GPU = True
-cgnn.SETTINGS.NB_GPU = 1
-cgnn.SETTINGS.NB_JOBS = 1
+cgnn.SETTINGS.NB_GPU = 2
+cgnn.SETTINGS.NB_JOBS = 8
 
 #Setting for CGNN-Fourier
 cgnn.SETTINGS.use_Fast_MMD = True
