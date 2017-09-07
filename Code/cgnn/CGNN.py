@@ -489,7 +489,8 @@ class CGNNGenerator(object):
         input_coefficients = np.ones([len(list_nodes), 1], dtype=np.float32)
         if type(coefficients) == dict:
             for idx, node in enumerate(list_nodes):
-                input_coefficients[idx] = coefficients[node]
+                if node in coefficients:
+                    input_coefficients[idx, 0] = coefficients[node]
         elif type(coefficients) == list:
             input_coefficients = np.array(coefficients, dtype=np.float32)
         else:
