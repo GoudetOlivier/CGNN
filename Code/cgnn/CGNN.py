@@ -491,7 +491,7 @@ class CGNNGenerator(object):
             for idx, node in enumerate(list_nodes):
                 if node in coefficients:
                     input_coefficients[idx, 0] = coefficients[node]
-        else:
+        elif coefficients is not None:
             input_coefficients = np.array(coefficients, dtype=np.float32)
 
         test_epochs = kwargs.get('test_epochs', SETTINGS.test_epochs)
