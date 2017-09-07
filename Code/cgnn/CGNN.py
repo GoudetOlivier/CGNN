@@ -497,7 +497,7 @@ class CGNNGenerator(object):
         test_epochs = kwargs.get('test_epochs', SETTINGS.test_epochs)
         generated_variables = []
         for it in range(test_epochs):
-            generated_variables.append(self.sess.run([self.all_generated_variables],
+            generated_variables.append(self.sess.run(self.all_generated_variables,
                                                      feed_dict={self.all_real_variables: np.zeros([1, len(list_nodes)]),
                                                                 self.coefficients: input_coefficients}))
         print(generated_variables[0].shape)
