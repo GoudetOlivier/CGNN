@@ -432,7 +432,7 @@ class CGNNGenerator(object):
 
                     out_v = tf.nn.relu(tf.matmul(input_v, W_in) + b_in)
                     out_v = tf.matmul(out_v, W_out) + b_out
-                    out_v *= self.coefficients[coefficient_index[var], 0]
+                    out_v += self.coefficients[coefficient_index[var], 0]
                     generated_variables[var] = out_v
                     theta_G.extend([W_in, b_in, W_out, b_out])
 
@@ -467,7 +467,7 @@ class CGNNGenerator(object):
         :return: None
         """
         train_epochs = kwargs.get('train_epochs', SETTINGS.train_epochs)
-        input_coefficients = np.ones([len(self.graph.get_list_nodes()), 1], dtype=np.float32)
+        input_coefficients = np.zeros([len(self.graph.get_list_nodes()), 1], dtype=np.float32)
 
         for it in range(train_epochs):
 
@@ -486,7 +486,7 @@ class CGNNGenerator(object):
     def generate(self, coefficients=None, **kwargs):
 
         list_nodes = self.graph.get_list_nodes()
-        input_coefficients = np.ones([len(list_nodes), 1], dtype=np.float32)
+        input_coefficients = np.zeros([len(list_nodes), 1], dtype=np.float32)
         if type(coefficients) == dict:
             for idx, node in enumerate(list_nodes):
                 if node in coefficients:
