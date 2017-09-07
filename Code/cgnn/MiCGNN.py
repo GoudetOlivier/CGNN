@@ -9,6 +9,7 @@ import numpy as np
 from .utils.Loss import MMD_loss_tf as MMD_tf
 from .utils.Loss import Fourier_MMD_Loss_tf as Fourier_MMD_tf
 from .utils.Settings import SETTINGS
+from .utils.Graph import DirectedGraph
 from joblib import Parallel, delayed
 from sklearn.preprocessing import scale
 from .PairwiseModel import Pairwise_Model
@@ -52,7 +53,7 @@ class MiGNN_tf(object):
         self.X = tf.placeholder(tf.float32, shape=[None, typeX])
         self.Y = tf.placeholder(tf.float32, shape=[None, typeY])
 
-        W_in = tf.Variable(init([typeX+1, h_layer_dim], **kwargs))
+        W_in = tf.Variable(init([typeX + 1, h_layer_dim], **kwargs))
         b_in = tf.Variable(init([h_layer_dim], **kwargs))
         W_out = tf.Variable(init([h_layer_dim, typeY], **kwargs))
         b_out = tf.Variable(init([typeY], **kwargs))
@@ -170,6 +171,7 @@ class MiGNN(Pairwise_Model):
     Shallow Generative Neural networks, models the causal directions x->y and y->x with a 1-hidden layer neural network
     and a MMD loss. The causal direction is considered as the "best-fit" between the two directions
     """
+
     # ToDo : One Hot encoded data management
 
     def __init__(self, backend="TensorFlow"):
@@ -177,7 +179,7 @@ class MiGNN(Pairwise_Model):
         self.backend = backend
 
     def predict_proba(self, a, b, idx=0, **kwargs):
-        typea= kwargs.get("typeX", 1)
+        typea = kwargs.get("typeX", 1)
         typeb = kwargs.get("typeY", 1)
         backend_alg_dic = {"TensorFlow": tf_run_instance}
         if len(np.array(a).shape) == 1:
@@ -243,7 +245,7 @@ class MiCGNN_tf(object):
                         set(par).issubset(generated_variables)):
                     # Generate the variable
 
-                    W_in = tf.Variable(init([sum([types[i]for i in par]) + 1, h_layer_dim], **kwargs))
+                    W_in = tf.Variable(init([sum([types[i] for i in par]) + 1, h_layer_dim], **kwargs))
                     b_in = tf.Variable(init([h_layer_dim], **kwargs))
                     W_out = tf.Variable(init([h_layer_dim, types[var]], **kwargs))
                     b_out = tf.Variable(init([types[var]], **kwargs))
@@ -339,11 +341,12 @@ class MiCGNN_tf(object):
         return np.array(generated_variables)[0, :, :]
 
 
-def run_CGNN_tf(df_data, graph, idx=0, run=0, **kwargs):
+def run_MiCGNN_tf(df_data, graph, types, idx=0, run=0, **kwargs):
     """ Execute the CGNN, by init, train and eval either on CPU or GPU
 
     :param df_data: data corresponding to the graph
     :param graph: Graph to be run
+    :param types:
     :param run: number of the run (only for print)
     :param idx: number of the idx (only for print)
     :param kwargs: gpu=(SETTINGS.GPU) True if GPU is used
@@ -356,25 +359,34 @@ def run_CGNN_tf(df_data, graph, idx=0, run=0, **kwargs):
     gpu_offset = kwargs.get('gpu_offset', SETTINGS.GPU_OFFSET)
 
     list_nodes = graph.get_list_nodes()
-    df_data = df_data[list_nodes].as_matrix()
-    data = df_data.astype('float32')
+    # df_data = df_data[list_nodes].as_matrix()
+    # ToDo: Conversion Into OneHotEncoded Vars.
+    data = pd.DataFrame()
+    for idx, node in enumerate(list_nodes):
+        if types[node] > 1:
+            data = pd.DataFrame(np.concatenate((data.as_matrix(),
+                                                pd.get_dummies(df_data[node], prefix=node).as_matrix()), axis=1))
+        else:
+            data = pd.DataFrame(np.concatenate((data.as_matrix(), df_data[node].as_matrix()), axis=1))
 
-    if (data.shape[0] > SETTINGS.max_nb_points):
+    data = data.as_matrix().astype('float32')
+
+    if data.shape[0] > SETTINGS.max_nb_points:
         p = np.random.permutation(data.shape[0])
         data = data[p[:int(SETTINGS.max_nb_points)], :]
 
     if gpu:
         with tf.device('/gpu:' + str(gpu_offset + run % nb_gpu)):
-            model = CGNN_tf(data.shape[0], graph, run, idx, **kwargs)
+            model = MiCGNN_tf(data.shape[0], graph, types, run, idx, **kwargs)
             model.train(data, **kwargs)
             return model.evaluate(data, **kwargs)
     else:
-        model = CGNN_tf(data.shape[0], graph, run, idx, **kwargs)
+        model = MiCGNN_tf(data.shape[0], graph, types, run, idx, **kwargs)
         model.train(data, **kwargs)
         return model.evaluate(data, **kwargs)
 
 
-def hill_climbing(graph, data, run_cgnn_function, **kwargs):
+def hill_climbing(graph, data, types, run_cgnn_function, **kwargs):
     """ Optimize graph using CGNN with a hill-climbing algorithm
 
     :param graph: graph to optimize
@@ -391,7 +403,7 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
     improvement = True
     result = []
     result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-        data, graph, 0, run, **kwargs) for run in range(nb_runs))
+        data, graph, types, 0, run, **kwargs) for run in range(nb_runs))
 
     score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
     globalscore = score_network
@@ -414,7 +426,7 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
                 print('Edge {} in evaluation :'.format(edge))
                 tested_configurations.append(test_graph.get_dict_nw())
                 result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-                    data, test_graph, idx_pair, run, **kwargs) for run in range(nb_runs))
+                    data, test_graph, types, idx_pair, run, **kwargs) for run in range(nb_runs))
 
                 score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
 
@@ -430,7 +442,7 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
     return graph
 
 
-def exploratory_hill_climbing(graph, data, run_cgnn_function, **kwargs):
+def exploratory_hill_climbing(graph, data, types, run_cgnn_function, **kwargs):
     """ Optimize graph using CGNN with a hill-climbing algorithm
 
     :param graph: graph to optimize
@@ -450,7 +462,7 @@ def exploratory_hill_climbing(graph, data, run_cgnn_function, **kwargs):
     loop = 0
     tested_configurations = [graph.get_dict_nw()]
     result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-        data, graph, 0, run, **kwargs) for run in range(nb_runs))
+        data, graph, types, 0, run, **kwargs) for run in range(nb_runs))
 
     score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
     globalscore = score_network
@@ -475,7 +487,7 @@ def exploratory_hill_climbing(graph, data, run_cgnn_function, **kwargs):
             print('Reversed Edges {} in evaluation :'.format(list_edges[selected_edges]))
             tested_configurations.append(test_graph.get_dict_nw())
             result_pairs = Parallel(n_jobs=nb_jobs)(delayed(run_cgnn_function)(
-                data, test_graph, loop, run, **kwargs) for run in range(nb_runs))
+                data, types, test_graph, loop, run, **kwargs) for run in range(nb_runs))
 
             score_network = np.mean([i for i in result_pairs if np.isfinite(i)])
 
@@ -490,7 +502,7 @@ def exploratory_hill_climbing(graph, data, run_cgnn_function, **kwargs):
     return graph
 
 
-def tabu_search(graph, data, run_cgnn_function, **kwargs):
+def tabu_search(graph, data, types, run_cgnn_function, **kwargs):
     """ Optimize graph using CGNN with a hill-climbing algorithm
 
     :param graph: graph to optimize
@@ -505,7 +517,7 @@ def tabu_search(graph, data, run_cgnn_function, **kwargs):
     raise ValueError('Not Yet Implemented')
 
 
-class CGNN(GraphModel):
+class MiCGNN(GraphModel):
     """
     CGNN Model ; Using generative models, generate the whole causal graph and improve causal
     direction predictions in the graph.
@@ -516,16 +528,16 @@ class CGNN(GraphModel):
 
         :param backend: Choose the backend to use, either 'PyTorch' or 'TensorFlow'
         """
-        super(CGNN, self).__init__()
+        super(MiCGNN, self).__init__()
         self.backend = backend
 
         if self.backend == 'TensorFlow':
-            self.infer_graph = run_CGNN_tf
+            self.infer_graph = run_MiCGNN_tf
         else:
             print('No backend known as {}'.format(self.backend))
             raise ValueError
 
-    def create_graph_from_data(self, data):
+    def create_graph_from_data(self, data, **kwargs):
         print("The CGNN model is not able (yet?) to model the graph directly from raw data")
         raise ValueError
 
@@ -538,9 +550,12 @@ class CGNN(GraphModel):
         :param log: Save logs of the execution
         :return: improved directed acyclic graph
         """
+        types = kwargs.get("types", "err")
+        if types == "err":
+            raise ValueError("Need type")
         data = pd.DataFrame(scale(data.as_matrix()), columns=data.columns)
         alg_dic = {'HC': hill_climbing, 'tabu': tabu_search, 'EHC': exploratory_hill_climbing}
-        return alg_dic[alg](dag, data, self.infer_graph, **kwargs)
+        return alg_dic[alg](dag, data, types, self.infer_graph, **kwargs)
 
     def orient_undirected_graph(self, data, umg, **kwargs):
         """ Orient the undirected graph using GNN and apply CGNN to improve the graph
@@ -552,6 +567,20 @@ class CGNN(GraphModel):
 
         warnings.warn("The pairwise GNN model is computed on each edge of the UMG "
                       "to initialize the model and start CGNN with a DAG")
-        gnn = GNN(backend=self.backend, **kwargs)
-        dag = gnn.orient_graph(data, umg, **kwargs)  # Pairwise method
+        # gnn = GNN(backend=self.backend, **kwargs)
+        # dag = gnn.orient_graph(data, umg, **kwargs)  # Pairwise method
+        # ToDo : Random Orientation?
+        dag = DirectedGraph()
+        list_edges = umg.get_list_edges_without_duplicate()
+        for edge in list_edges:
+            if np.random.randint(0, 2, dtype=bool):
+                edge = edge[::-1]
+            test_graph = deepcopy(dag)
+            test_graph.add(edge[0], edge[1])
+            if not test_graph.is_cyclic():
+                dag = test_graph
+            else:
+                dag.add(edge[1], edge[0])
+                if dag.is_cyclic():
+                    raise ValueError
         return self.orient_directed_graph(data, dag, **kwargs)

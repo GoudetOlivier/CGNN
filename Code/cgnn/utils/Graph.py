@@ -428,7 +428,7 @@ class UndirectedGraph(Graph):
 
         for i in self._graph:
             for j in list(self._graph[i]):
-                if([j, i] not in list_edges):
+                if [j, i] not in list_edges:
                     list_edges.append([i, j])
 
         return list_edges
