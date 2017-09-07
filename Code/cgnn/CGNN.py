@@ -89,8 +89,9 @@ class CGNN_tf(object):
 
         self.all_generated_variables = tf.concat(listvariablegraph, 1)
 
-        if(use_Fast_MMD):
-            self.G_dist_loss_xcausesy = Fourier_MMD_Loss_tf(self.all_real_variables, self.all_generated_variables,nb_vectors_approx_MMD)
+        if (use_Fast_MMD):
+            self.G_dist_loss_xcausesy = Fourier_MMD_Loss_tf(self.all_real_variables, self.all_generated_variables,
+                                                            nb_vectors_approx_MMD)
         else:
             self.G_dist_loss_xcausesy = MMD_loss_tf(self.all_real_variables, self.all_generated_variables)
 
@@ -146,7 +147,7 @@ class CGNN_tf(object):
 
             if verbose and it % 100 == 0:
                 print('Pair:{}, Run:{}, Iter:{}, score:{}'
-                          .format(self.idx, self.run, it, MMD_tr[0]))
+                      .format(self.idx, self.run, it, MMD_tr[0]))
 
         tf.reset_default_graph()
 
@@ -182,7 +183,7 @@ def run_CGNN_tf(df_data, graph, idx=0, run=0, **kwargs):
 
     if (data.shape[0] > SETTINGS.max_nb_points):
         p = np.random.permutation(data.shape[0])
-        data  = data[p[:int(SETTINGS.max_nb_points)],:]
+        data = data[p[:int(SETTINGS.max_nb_points)], :]
 
     if gpu:
         with tf.device('/gpu:' + str(gpu_offset + run % nb_gpu)):
@@ -248,7 +249,6 @@ def hill_climbing(graph, data, run_cgnn_function, **kwargs):
                     print('Edge {} got reversed !'.format(edge))
                     globalscore = score_network
 
-
     return graph
 
 
@@ -283,11 +283,11 @@ def exploratory_hill_climbing(graph, data, run_cgnn_function, **kwargs):
         loop += 1
         list_edges = graph.get_list_edges()
 
-        possible_solution=False
+        possible_solution = False
         while not possible_solution:
             test_graph = deepcopy(graph)
             selected_edges = np.random.choice(len(list_edges),
-                                              max(int(exploration_factor * ((nb_loops-loop)/nb_loops)**2), 1))
+                                              max(int(exploration_factor * ((nb_loops - loop) / nb_loops) ** 2), 1))
             for edge in list_edges[selected_edges]:
                 test_graph.reverse_edge()
             if not (test_graph.is_cyclic()
@@ -333,7 +333,7 @@ class CGNN(GraphModel):
     direction predictions in the graph.
     """
 
-    def __init__(self, backend='PyTorch'):
+    def __init__(self, backend='TensorFlow'):
         """ Initialize the CGNN Model.
 
         :param backend: Choose the backend to use, either 'PyTorch' or 'TensorFlow'
@@ -343,8 +343,6 @@ class CGNN(GraphModel):
 
         if self.backend == 'TensorFlow':
             self.infer_graph = run_CGNN_tf
-        elif self.backend == 'PyTorch':
-            self.infer_graph = run_CGNN_th
         else:
             print('No backend known as {}'.format(self.backend))
             raise ValueError
@@ -379,3 +377,130 @@ class CGNN(GraphModel):
         gnn = GNN(backend=self.backend, **kwargs)
         dag = gnn.orient_graph(data, umg, **kwargs)  # Pairwise method
         return self.orient_directed_graph(data, dag, **kwargs)
+
+
+class CGNNGenerator(object):
+    def __init__(self, N, graph, run, idx, **kwargs):
+        """ Build the tensorflow graph of the CGNN structure
+
+        :param N: Number of points
+        :param graph: Graph to be run
+        :param run: number of the run (only for print)
+        :param idx: number of the idx (only for print)
+        :param kwargs: learning_rate=(SETTINGS.learning_rate) learning rate of the optimizer
+        :param kwargs: h_layer_dim=(SETTINGS.h_layer_dim) Number of units in the hidden layer
+        :param kwargs: use_Fast_MMD=(SETTINGS.use_Fast_MMD) use fast MMD option
+        :param kwargs: nb_vectors_approx_MMD=(SETTINGS.nb_vectors_approx_MMD) nb vectors
+        """
+        super(CGNNGenerator, self).__init__()
+
+        learning_rate = kwargs.get('learning_rate', SETTINGS.learning_rate)
+        h_layer_dim = kwargs.get('h_layer_dim', SETTINGS.h_layer_dim)
+        use_Fast_MMD = kwargs.get('use_Fast_MMD', SETTINGS.use_Fast_MMD)
+        nb_vectors_approx_MMD = kwargs.get('nb_vectors_approx_MMD', SETTINGS.nb_vectors_approx_MMD)
+
+        self.run = run
+        self.idx = idx
+        self.graph = graph
+        list_nodes = graph.get_list_nodes()
+        n_var = len(list_nodes)
+        coefficient_index = {}
+        for idx, node in enumerate(list_nodes):
+            coefficient_index[node] = idx
+        self.coefficients = tf.placeholder(tf.float32, shape=[n_var, 1])
+        self.all_real_variables = tf.placeholder(tf.float32, shape=[None, n_var])
+
+        generated_variables = {}
+        theta_G = []
+
+        while len(generated_variables) < n_var:
+            # Need to generate all variables in the graph using its parents : possible because of the DAG structure
+            for var in list_nodes:
+                # Check if all parents are generated
+                par = graph.get_parents(var)
+                if (var not in generated_variables and
+                        set(par).issubset(generated_variables)):
+                    # Generate the variable
+                    W_in = tf.Variable(init([len(par) + 1, h_layer_dim], **kwargs))
+                    b_in = tf.Variable(init([h_layer_dim], **kwargs))
+                    W_out = tf.Variable(init([h_layer_dim, 1], **kwargs))
+                    b_out = tf.Variable(init([1], **kwargs))
+
+                    input_v = [generated_variables[i] for i in par]
+                    input_v.append(tf.random_normal([N, 1], mean=0, stddev=1))
+                    input_v = tf.concat(input_v, 1)
+
+                    out_v = tf.nn.relu(tf.matmul(input_v, W_in) + b_in)
+                    out_v = tf.matmul(out_v, W_out) + b_out
+                    out_v *= self.coefficients[coefficient_index[var], 0]
+                    generated_variables[var] = out_v
+                    theta_G.extend([W_in, b_in, W_out, b_out])
+
+        listvariablegraph = []
+        for var in list_nodes:
+            listvariablegraph.append(generated_variables[var])
+
+        self.all_generated_variables = tf.concat(listvariablegraph, 1)
+
+        if (use_Fast_MMD):
+            self.G_dist_loss_xcausesy = Fourier_MMD_Loss_tf(self.all_real_variables, self.all_generated_variables,
+                                                            nb_vectors_approx_MMD)
+        else:
+            self.G_dist_loss_xcausesy = MMD_loss_tf(self.all_real_variables, self.all_generated_variables)
+
+        self.G_solver_xcausesy = (tf.train.AdamOptimizer(
+            learning_rate=learning_rate).minimize(self.G_dist_loss_xcausesy,
+                                                  var_list=theta_G))
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+        self.sess = tf.Session(config=config)
+        self.sess.run(tf.global_variables_initializer())
+
+    def train(self, data, verbose=True, **kwargs):
+        """ Train the initialized model
+
+        :param data: data corresponding to the graph
+        :param verbose: verbose
+        :param kwargs: train_epochs=(SETTINGS.train_epochs) number of train epochs
+        :return: None
+        """
+        train_epochs = kwargs.get('train_epochs', SETTINGS.train_epochs)
+        input_coefficients = np.ones([len(self.graph.get_list_nodes()), 1], dtype=np.float32)
+
+        for it in range(train_epochs):
+
+            _, G_dist_loss_xcausesy_curr = self.sess.run(
+                [self.G_solver_xcausesy, self.G_dist_loss_xcausesy],
+                feed_dict={self.all_real_variables: data,
+                           self.coefficients: input_coefficients}
+            )
+
+            if verbose:
+                if it % 100 == 0:
+                    print('Pair:{}, Run:{}, Iter:{}, score:{}'.
+                          format(self.idx, self.run,
+                                 it, G_dist_loss_xcausesy_curr))
+
+    def generate(self, coefficients="Default", **kwargs):
+
+        list_nodes = self.graph.get_list_nodes()
+        input_coefficients = np.ones([len(list_nodes), 1], dtype=np.float32)
+        if type(coefficients) == dict:
+            for idx, node in enumerate(list_nodes):
+                input_coefficients[idx] = coefficients[node]
+        elif type(coefficients) == list:
+            input_coefficients = np.array(coefficients, dtype=np.float32)
+        else:
+            if coefficients != "Default" or coefficients is not None:
+                raise ValueError
+        test_epochs = kwargs.get('test_epochs', SETTINGS.test_epochs)
+        generated_variables = []
+        for it in range(test_epochs):
+            generated_variables.append(self.sess.run([self.all_generated_variables],
+                                                     feed_dict={self.all_real_variables: np.zeros([1, len(list_nodes)]),
+                                                                self.coefficients: input_coefficients}))
+
+        tf.reset_default_graph()
+        return generated_variables
