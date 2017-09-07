@@ -458,7 +458,7 @@ class CGNNGenerator(object):
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
-    def ge(self, data, verbose=True, **kwargs):
+    def train(self, data, verbose=True, **kwargs):
         """ Train the initialized model
 
         :param data: data corresponding to the graph
