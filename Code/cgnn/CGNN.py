@@ -458,7 +458,7 @@ class CGNNGenerator(object):
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
-    def train(self, data, verbose=True, **kwargs):
+    def ge(self, data, verbose=True, **kwargs):
         """ Train the initialized model
 
         :param data: data corresponding to the graph
@@ -483,7 +483,7 @@ class CGNNGenerator(object):
                           format(self.idx, self.run,
                                  it, G_dist_loss_xcausesy_curr))
 
-    def generate(self, coefficients="Default", **kwargs):
+    def generate(self, coefficients=None, **kwargs):
 
         list_nodes = self.graph.get_list_nodes()
         input_coefficients = np.ones([len(list_nodes), 1], dtype=np.float32)
@@ -491,11 +491,9 @@ class CGNNGenerator(object):
             for idx, node in enumerate(list_nodes):
                 if node in coefficients:
                     input_coefficients[idx, 0] = coefficients[node]
-        elif type(coefficients) == list:
-            input_coefficients = np.array(coefficients, dtype=np.float32)
         else:
-            if coefficients != "Default" or coefficients is not None:
-                raise ValueError
+            input_coefficients = np.array(coefficients, dtype=np.float32)
+
         test_epochs = kwargs.get('test_epochs', SETTINGS.test_epochs)
         generated_variables = []
         for it in range(test_epochs):
