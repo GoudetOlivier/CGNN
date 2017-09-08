@@ -500,6 +500,5 @@ class CGNNGenerator(object):
             generated_variables.append(self.sess.run(self.all_generated_variables,
                                                      feed_dict={self.all_real_variables: np.zeros([1, len(list_nodes)]),
                                                                 self.coefficients: input_coefficients}))
-        print(generated_variables[0].shape)
         tf.reset_default_graph()
-        return generated_variables
+        return np.concatenate(generated_variables, axis=0)
