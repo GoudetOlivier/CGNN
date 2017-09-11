@@ -29,12 +29,12 @@ def MMD_loss_tf(xy_true, xy_pred):
         kernel_val = tf.exp(-bandwiths_gamma[i] * exponent)
         loss += tf.reduce_sum(S * kernel_val)
 
-    return tf.sqrt(loss)
+    return loss
 
 
 def rp(k,s,d):
 
-  return tf.transpose(tf.concat([tf.concat([2*si*tf.random_normal([k,d], mean=0, stddev=1) for si in s], axis = 0), 2*np.pi*tf.random_normal([k*len(s),1], mean=0, stddev=1)], axis = 1))
+  return tf.transpose(tf.concat([tf.concat([2*si*tf.random_normal([k,d], mean=0, stddev=1) for si in s], axis = 0), tf.random_uniform([k*len(s),1], minval=0, maxval=2*np.pi)], axis = 1))
 
 def f1(x,wz,N):
 
