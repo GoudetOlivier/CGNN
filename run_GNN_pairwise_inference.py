@@ -6,6 +6,7 @@ import pandas as pd
 cgnn.SETTINGS.GPU = True
 cgnn.SETTINGS.NB_GPU = 2
 cgnn.SETTINGS.NB_JOBS = 8
+cgnn.SETTINGS.h_layer_dim = 30
 
 #Setting for CGNN-Fourier
 cgnn.SETTINGS.use_Fast_MMD = True
