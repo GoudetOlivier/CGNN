@@ -370,13 +370,13 @@ def hill_climbing_confounders(graph, data, run_cgnn_function, **kwargs):
                     graph.add(node1, node2, score_edge)
                     improvement = True
                     print("Edge " + str(node1) + " -> " + str(node2) + " is added with score : " + str(score_edge) + " !")
-                    globalscore = score_network
+                    globalscore = score_network_add_edge_node1_node2
                 elif score_network_add_edge_node2_node1 < globalscore and score_network_add_edge_node2_node1 < score_network_add_edge_node1_node2:
                     score_edge = globalscore - score_network_add_edge_node2_node1
                     graph.add(node2, node1, score_edge)
                     improvement = True
                     print("Edge " + str(node2) + " -> " + str(node1) + " is added with score : " + str(score_edge) + " !")
-                    globalscore = score_network
+                    globalscore = score_network_add_edge_node2_node1
                 else :
                     print("Edge not added, possible confounder " + str(node1) + " <-> " + str(node2))
 
