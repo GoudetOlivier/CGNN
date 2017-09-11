@@ -33,12 +33,12 @@ class DefaultSettings(object):
         self.max_nb_points = 1500
 
         # CGNN
-        self.h_layer_dim = 30
+        self.h_layer_dim = 20
         self.train_epochs = 1000
         self.test_epochs = 500
         self.use_Fast_MMD = False
         self.nb_vectors_approx_MMD = 100
-        self.complexity_graph_param = 0.0005
+        self.complexity_graph_param = 0.00005
 
 
 
