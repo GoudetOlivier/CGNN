@@ -6,7 +6,7 @@ Date : 7/06/2017
 from .utils.Graph import DirectedGraph
 from sklearn.preprocessing import scale
 from pandas import DataFrame
-
+import random
 
 class Pairwise_Model(object):
     """ Base class for all pairwise causal inference models
@@ -72,7 +72,11 @@ class Pairwise_Model(object):
 
         for edge in edges:
             a, b = edge
-            weight = self.predict_proba(scale(df_data[a].as_matrix()), scale(df_data[b].as_matrix()),idx)
+            #weight = self.predict_proba(scale(df_data[a].as_matrix()), scale(df_data[b].as_matrix()),idx)
+            if(random.random() < 0.5):
+                weight = -1
+            else:
+                weight = 1
 
             if weight > 0:  # a causes b
                 graph.add(a, b, weight)
@@ -108,7 +112,11 @@ class Pairwise_Model(object):
 
         for edge in edges:
             a, b = edge
-            weight = self.predict_proba(scale(df_data[a].as_matrix()), scale(df_data[b].as_matrix()),idx)
+            #weight = self.predict_proba(scale(df_data[a].as_matrix()), scale(df_data[b].as_matrix()),idx)
+            if(random.random() < 0.5):
+                weight = -1
+            else:
+                weight = 1
 
             if weight > 0:  # a causes b
                 graph.add(a, b, weight)

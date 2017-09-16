@@ -6,11 +6,15 @@ import pandas as pd
 cgnn.SETTINGS.GPU = True
 cgnn.SETTINGS.NB_GPU = 2
 cgnn.SETTINGS.NB_JOBS = 4
-cgnn.SETTINGS.NB_RUNS = 32
+
+#Setting for CGNN-Fourier
+cgnn.SETTINGS.use_Fast_MMD = False
+cgnn.SETTINGS.NB_RUNS = 4
 
 
 datafile = "Example_graph_numdata.csv"
 skeletonfile = "Example_graph_skeleton.csv"
+
 
 print("Processing " + datafile + "...")
 undirected_links = pd.read_csv(skeletonfile)
@@ -23,8 +27,8 @@ p_directed_graph = GNN.orient_graph(data, umg, printout=datafile + '_printout.cs
 gnn_res = pd.DataFrame(p_directed_graph.get_list_edges(descending=True), columns=['Cause', 'Effect', 'Score'])
 gnn_res.to_csv(datafile + "_pairwise_predictions.csv")
 
-CGNN = cgnn.CGNN(backend="TensorFlow")
-directed_graph = CGNN.orient_directed_graph(data, p_directed_graph)
+CGNN_decomposable = cgnn.CGNN_decomposable(backend="TensorFlow")
+directed_graph = CGNN_decomposable.orient_directed_graph(data, p_directed_graph)
 cgnn_res = pd.DataFrame(directed_graph.get_list_edges(descending=True), columns=['Cause', 'Effect', 'Score'])
 cgnn_res.to_csv(datafile + "_predictions.csv")
 

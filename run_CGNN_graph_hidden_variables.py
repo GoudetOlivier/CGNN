@@ -5,7 +5,7 @@ from sklearn.preprocessing import scale
 # Params
 cgnn.SETTINGS.GPU = True
 cgnn.SETTINGS.NB_GPU = 2
-cgnn.SETTINGS.NB_JOBS = 8
+cgnn.SETTINGS.NB_JOBS = 4
 cgnn.SETTINGS.NB_RUNS = 32
 
 datafile = "Example_graph_confounders_numdata.csv"

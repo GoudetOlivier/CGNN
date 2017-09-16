@@ -200,8 +200,20 @@ class DirectedGraph(Graph):
 
     def __init__(self, df=None, adjacency_matrix=False, skeleton = False):
         self.skeleton = skeleton
+        self.score_node = {}
         """ Create a new directed graph structure"""
         super(DirectedGraph, self).__init__(df, adjacency_matrix)
+
+    def get_total_score(self):
+
+        list_nodes = self.get_list_nodes()
+        total_score = 0.0
+
+        for node in list_nodes:
+            print("score node " + str(node) + " : " + str(self.score_node[node]))
+            total_score += self.score_node[node]
+
+        return total_score
 
     def add(self, node1, node2, weight=1):
         """ Add or update directed edge from node1 to node2
@@ -358,6 +370,9 @@ class DirectedGraph(Graph):
         :param weight: new weight of the edge
         """
         self._graph[node1][node2] = weight
+
+
+
 
     def get_correlation_matrix(self, sigma):
         nodes = self.skeleton.get_list_nodes()

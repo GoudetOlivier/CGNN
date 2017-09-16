@@ -1,6 +1,7 @@
 import tensorflow as tf
 from .utils.Graph import DirectedGraph, UndirectedGraph
 from .CGNN import CGNN
+from .CGNN_decomposable import CGNN_decomposable
 from .CGNN_confounders import CGNN_confounders
 from .GNN import GNN
 from .generators import __init__
