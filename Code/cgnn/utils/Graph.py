@@ -9,6 +9,8 @@ import numpy as np
 from copy import deepcopy
 from collections import defaultdict
 import pandas as pd
+from random import choice
+
 
 def list_to_dict(links):
     """ Create a dict out of a list of links
@@ -198,7 +200,7 @@ class Graph(object):
 class DirectedGraph(Graph):
     """ Graph data structure, directed. """
 
-    def __init__(self, df=None, adjacency_matrix=False, skeleton = False):
+    def __init__(self, df=None, adjacency_matrix=False, skeleton=False):
         self.skeleton = skeleton
         """ Create a new directed graph structure"""
         super(DirectedGraph, self).__init__(df, adjacency_matrix)
@@ -341,12 +343,12 @@ class DirectedGraph(Graph):
             visited.add(vertex)
             path.add(vertex)
             for neighbour in g.get(vertex, ()):
-                if neighbour in path :    
+                if neighbour in path:
                     self.reverse_edge(vertex, neighbour)
-                else :
+                else:
                     visit(neighbour)
             path.remove(vertex)
-      
+
         for v in g:
             visit(v)
 
@@ -433,4 +435,13 @@ class UndirectedGraph(Graph):
 
         return list_edges
 
+    def disrupt(self, n_edges=3):
 
+        adj, names = self.get_adjacency_matrix()
+        alledges = self.get_list_edges(
+            order_by_weight=True, descending=False, return_weights=False)
+        nd_edges = self.get_list_edges_without_duplicate()
+        to_remove = random.sample(set(nd_edges), n_edges)
+        ad_edges = [(names[i], names[j]) for i in range(
+            len(names)) for j in range(len(names)) if [names[i], names[j]] not in alledges]
+        return self
