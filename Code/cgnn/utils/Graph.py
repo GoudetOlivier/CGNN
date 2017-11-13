@@ -9,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 from collections import defaultdict
 import pandas as pd
-from random import choice
+import random
 
 
 def list_to_dict(links):
@@ -437,11 +437,22 @@ class UndirectedGraph(Graph):
 
     def disrupt(self, n_edges=3):
 
-        adj, names = self.get_adjacency_matrix()
+        names = self.get_list_nodes()
         alledges = self.get_list_edges(
             order_by_weight=True, descending=False, return_weights=False)
-        nd_edges = self.get_list_edges_without_duplicate()
+        list_edges = self.get_list_edges_without_duplicate()
+
+        nd_edges = [(i, j) for i in range(
+            len(names)) for j in range(len(names)) if [names[i], names[j]] in list_edges]
         to_remove = random.sample(set(nd_edges), n_edges)
-        ad_edges = [(names[i], names[j]) for i in range(
+
+        ad_edges = [(i, j) for i in range(
             len(names)) for j in range(len(names)) if [names[i], names[j]] not in alledges]
+        to_add = random.sample(set(ad_edges), n_edges)
+
+        for i in to_add:
+            self.add(names[i[0]], names[i[1]])
+
+        for i in to_remove:
+            self.remove_edge(names[i[0]], names[i[1]])
         return self
