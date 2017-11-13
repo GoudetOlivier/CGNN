@@ -461,6 +461,3 @@ class UndirectedGraph(Graph):
         for i in to_remove:
             self.remove_edge(names[i[0]], names[i[1]])
         return self
-
-
-zx
