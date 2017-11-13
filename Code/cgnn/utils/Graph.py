@@ -159,21 +159,26 @@ class Graph(object):
 
         return m, nodes
 
-    def get_dict_nw(self):
+    def get_dict_nw(self, reverse_order=False):
         """Get dictionary of graph without weight values
-
+        :param reverse_order: If the causes are set as 1st dict elements.
         :return: Dictionary of the directed graph
         :rtype: dict
 
         """
 
-        dict_nw = defaultdict(list)
+        _dict_nw = defaultdict(set)
         for i in self._graph:
             for j in list(self._graph[i]):
-                dict_nw[i].append(j)
-                if j not in dict_nw:
-                    dict_nw[j] = []
-        return dict(dict_nw)
+                if reverse_order:
+                    _dict_nw[j].add(i)
+                    if i not in _dict_nw:
+                        _dict_nw[i] = set()
+                else:
+                    _dict_nw[i].add(j)
+                    if j not in _dict_nw:
+                        _dict_nw[j] = set()
+        return dict(_dict_nw)
 
     def remove_node(self, node):
         """ Remove all references to node
@@ -456,3 +461,6 @@ class UndirectedGraph(Graph):
         for i in to_remove:
             self.remove_edge(names[i[0]], names[i[1]])
         return self
+
+
+zx

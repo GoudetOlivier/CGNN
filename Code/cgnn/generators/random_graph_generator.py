@@ -71,8 +71,7 @@ class RandomGraphGenerator:
                 # draw causes
                 last_idx = layer[-2][-1]
                 parents = list(set([np.random.randint(0, last_idx)
-                                    for i in range(
-                        self.num_max_parents)]))  # np.random.randint(self.num_max_parents - 1, self.num_max_parents))]))
+                                    for i in range(np.random.randint(1, self.num_max_parents + 1))]))  # np.random.randint(self.num_max_parents - 1, self.num_max_parents))]))
                 child = []
                 # Compute each cause's contribution
                 for par in parents:
@@ -123,7 +122,8 @@ class RandomGraphGenerator:
             self.cat_var = pd.DataFrame(self.cat_var)
         print('Build Directed Graph')
         self.graph = DirectedGraph()
-        self.graph.add_multiple_edges([list(i)+[1] for i in self.result_links.as_matrix()])
+        self.graph.add_multiple_edges(
+            [list(i) + [1] for i in self.result_links.as_matrix()])
 
         print('--Done !--')
         return self.get_data()
