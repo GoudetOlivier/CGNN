@@ -27,6 +27,7 @@ pandas
 # Fast Pytorch implementation of CGNN
 
 A faster implementation of CGNN in pytorch in available in the CausalDiscoveryToolBox (CDT)
+
 https://github.com/Diviyan-Kalainathan/CausalDiscoveryToolbox
 
 arXiv paper of the CDT: https://arxiv.org/abs/1903.02278
