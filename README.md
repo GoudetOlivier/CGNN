@@ -24,7 +24,7 @@ pandas
 - graph datasets : http://dx.doi.org/10.7910/DVN/UZMB69
 
 
-# Fast Pytorch implementation of CGNN
+# Fast Pytorch implementation of CGNN available in the CDT
 
 A faster implementation of CGNN in pytorch in available in the CausalDiscoveryToolBox (CDT)
 
