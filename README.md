@@ -22,3 +22,9 @@ pandas
 5) The complete datasets used in the article may be found at the following url:
 - pairwise datasets : http://dx.doi.org/10.7910/DVN/3757KX
 - graph datasets : http://dx.doi.org/10.7910/DVN/UZMB69
+
+
+# A faster implementation of CGNN in pytorch in available in the CausalDiscoveryToolBox (CDT)
+https://github.com/Diviyan-Kalainathan/CausalDiscoveryToolbox
+arXiv paper of the CDT: https://arxiv.org/abs/1903.02278
+
